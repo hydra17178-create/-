@@ -97,7 +97,7 @@ class CalendarEvent(AbstractEntity):
         return False
 
     def __lt__(self, other):
-        # Сравниваем по дате
+        
         if isinstance(other, CalendarEvent):
             d1 = datetime.strptime(self._date, "%d.%m.%Y")
             d2 = datetime.strptime(other._date, "%d.%m.%Y")
