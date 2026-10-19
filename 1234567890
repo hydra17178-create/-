@@ -5,10 +5,12 @@ from datetime import datetime
 
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel, QLineEdit,
                              QTextEdit, QPushButton, QListWidget, QListWidgetItem,
-                             QVBoxLayout, QHBoxLayout, QGroupBox, QFrame, QSplitter,
+                             QVBoxLayout, QHBoxLayout, QGroupBox, QSplitter,
                              QMessageBox, QStatusBar)
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
+
+
 
 class CustomPair:
     def __init__(self, key, value):
@@ -48,43 +50,46 @@ class PyQtABCMeta(ABCMeta, type(QMainWindow)):
     pass
 
 
+
 class CalendarEvent(AbstractEntity):
-    def __init__(self, event_id, title, date_str, description):
-        self._id = event_id
+    def __init__(self, e_id, title, date_str, desc):
+        self._id = e_id
         self._title = title
         self._date = date_str
-        self._description = description
+        self._description = desc
 
+ 
     @property
     def title(self):
         return self._title
 
     @title.setter
-    def title(self, value):
-        self._title = value
+    def title(self, val):
+        self._title = val
 
     @property
     def date(self):
         return self._date
 
     @date.setter
-    def date(self, value):
-        self._date = value
+    def date(self, val):
+        self._date = val
 
     @property
     def description(self):
         return self._description
 
     @description.setter
-    def description(self, value):
-        self._description = value
+    def description(self, val):
+        self._description = val
 
     @property
     def event_id(self):
         return self._id
 
     def get_info(self):
-        return f"{self._date}: {self._title}"
+        return f"{self._date} - {self._title}"
+
 
     def __eq__(self, other):
         if isinstance(other, CalendarEvent):
@@ -92,6 +97,7 @@ class CalendarEvent(AbstractEntity):
         return False
 
     def __lt__(self, other):
+        # Сравниваем по дате
         if isinstance(other, CalendarEvent):
             d1 = datetime.strptime(self._date, "%d.%m.%Y")
             d2 = datetime.strptime(other._date, "%d.%m.%Y")
@@ -99,7 +105,7 @@ class CalendarEvent(AbstractEntity):
         return False
 
     def __repr__(self):
-        return f"CalendarEvent(id={self._id}, title='{self._title}')"
+        return f"Event(id={self._id}, title='{self._title}')"
 
     def __str__(self):
         return f"{self._date} - {self._title}"
@@ -123,31 +129,27 @@ class MyLineEdit(QLineEdit):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFont(QFont("Arial", 11))
-        self.setStyleSheet("border: 1px solid #1976D2; padding: 5px; border-radius: 3px;")
+        self.setStyleSheet("border: 1px solid #1976D2; padding: 5px;")
 
 
 class MyTextEdit(QTextEdit):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFont(QFont("Arial", 11))
-        self.setStyleSheet("border: 1px solid #1976D2; padding: 5px; border-radius: 3px;")
+        self.setStyleSheet("border: 1px solid #1976D2; padding: 5px;")
 
 
 class MyPushButton(QPushButton):
     def __init__(self, text="", parent=None):
         super().__init__(text, parent)
         self.setFont(QFont("Arial", 11, QFont.Weight.Bold))
-        self.setStyleSheet("""
-            QPushButton { background-color: #1976D2; color: white; border-radius: 5px; padding: 8px; }
-            QPushButton:hover { background-color: #1565C0; }
-        """)
+        self.setStyleSheet("background-color: #1976D2; color: white; padding: 8px; border-radius: 4px;")
 
 
 class MyListWidget(QListWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFont(QFont("Arial", 11))
-        self.setStyleSheet("border: 1px solid #BDBDBD; border-radius: 5px; background-color: #FAFAFA;")
 
 
 class MyVBoxLayout(QVBoxLayout):
@@ -166,14 +168,13 @@ class MyGroupBox(QGroupBox):
     def __init__(self, title="", parent=None):
         super().__init__(title, parent)
         self.setStyleSheet(
-            "QGroupBox { font-weight: bold; border: 1px solid #9E9E9E; border-radius: 5px; margin-top: 10px; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 3px; }")
+            "QGroupBox { font-weight: bold; border: 1px solid gray; border-radius: 5px; margin-top: 10px; }")
 
 
-class MyFrame(QFrame):
+class MySplitter(QSplitter):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFrameShape(QFrame.Shape.HLine)
-        self.setFrameShadow(QFrame.Shadow.Sunken)
+        self.setOrientation(Qt.Orientation.Horizontal)
 
 
 class MyStatusBar(QStatusBar):
@@ -182,154 +183,157 @@ class MyStatusBar(QStatusBar):
         self.setStyleSheet("background-color: #E0E0E0;")
 
 
-
 class CalendarApp(QMainWindow, AbstractAppView, metaclass=PyQtABCMeta):
     def __init__(self):
         super().__init__()
         self.login = "UserName"
         self.time_in = datetime.now()
 
-        self.events = self.load_events()
+        self.events = []
+        self.selected_index = -1
+        self.load_data()
         self.events.sort()
-        self.selected_index = None
 
         self.build_ui()
 
     def build_ui(self):
-        self.setWindowTitle("Календарь (PyQt6 + ООП)")
-        self.resize(850, 550)
+        self.setWindowTitle("Календарь - ООП")
+        self.resize(850, 500)
 
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
 
-        main_layout = MyHBoxLayout(central_widget)
+        main_widget = QWidget()
+        self.setCentralWidget(main_widget)
+        main_layout = MyHBoxLayout(main_widget)
 
         left_group = MyGroupBox("Список событий")
         left_layout = MyVBoxLayout()
-
-        self.list_widget = MyListWidget()
-        self.list_widget.currentRowChanged.connect(self.select_event)
-        self.update_list_ui()
-
-        left_layout.addWidget(self.list_widget)
+        self.list_ui = MyListWidget()
+        self.list_ui.currentRowChanged.connect(self.on_event_click)
+        left_layout.addWidget(self.list_ui)
         left_group.setLayout(left_layout)
 
-        right_group = MyGroupBox("Детали события")
+        right_group = MyGroupBox("Детали")
         right_layout = MyVBoxLayout()
 
         right_layout.addWidget(MyLabel("Название:"))
-        self.title_input = MyLineEdit()
-        right_layout.addWidget(self.title_input)
+        self.input_title = MyLineEdit()
+        right_layout.addWidget(self.input_title)
 
         right_layout.addWidget(MyLabel("Дата (ДД.ММ.ГГГГ):"))
-        self.date_input = MyLineEdit()
-        right_layout.addWidget(self.date_input)
+        self.input_date = MyLineEdit()
+        right_layout.addWidget(self.input_date)
 
         right_layout.addWidget(MyLabel("Описание:"))
-        self.desc_input = MyTextEdit()
-        right_layout.addWidget(self.desc_input)
+        self.input_desc = MyTextEdit()
+        right_layout.addWidget(self.input_desc)
 
-        self.save_btn = MyPushButton("Сохранить изменения")
-        self.save_btn.clicked.connect(self.save_event)
-        right_layout.addWidget(self.save_btn)
+        self.btn_save = MyPushButton("Сохранить изменения")
+        self.btn_save.clicked.connect(self.save_changes)
+        right_layout.addWidget(self.btn_save)
 
         right_group.setLayout(right_layout)
 
-        splitter = QSplitter(Qt.Orientation.Horizontal)
+
+        splitter = MySplitter()
         splitter.addWidget(left_group)
         splitter.addWidget(right_group)
-        splitter.setSizes([350, 500])
+        splitter.setSizes([300, 500])
 
         main_layout.addWidget(splitter)
 
-        self.status_bar = MyStatusBar()
-        self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("Готово")
+        self.status = MyStatusBar()
+        self.setStatusBar(self.status)
+        self.status.showMessage("Программа запущена")
 
-    def update_list_ui(self):
-        self.list_widget.clear()
-        for event in self.events:
-            item = QListWidgetItem(str(event))
-            item.setToolTip(event.description)
-            self.list_widget.addItem(item)
+        self.refresh_list_ui()
 
-    def select_event(self, index):
+    def refresh_list_ui(self):
+        self.list_ui.clear()
+        for ev in self.events:
+            item = QListWidgetItem(str(ev))
+            item.setToolTip(ev.description)
+            self.list_ui.addItem(item)
+
+    def on_event_click(self, index):
         if index < 0 or index >= len(self.events):
             return
         self.selected_index = index
-        event = self.events[index]
+        ev = self.events[index]
 
-        self.title_input.setText(event.title)
-        self.date_input.setText(event.date)
-        self.desc_input.setText(event.description)
+        self.input_title.setText(ev.title)
+        self.input_date.setText(ev.date)
+        self.input_desc.setText(ev.description)
 
-    def save_event(self):
-        if self.selected_index is None:
-            QMessageBox.warning(self, "Ошибка", "Выберите событие из списка!")
+    def save_changes(self):
+        if self.selected_index == -1:
+            QMessageBox.warning(self, "Внимание", "Сначала выберите событие в списке!")
             return
 
-        event = self.events[self.selected_index]
-        event.title = self.title_input.text()
-        event.date = self.date_input.text()
-        event.description = self.desc_input.toPlainText()
+        ev = self.events[self.selected_index]
+        ev.title = self.input_title.text()
+        ev.date = self.input_date.text()
+        ev.description = self.input_desc.toPlainText()
 
-        self.save_events_to_file()
-        self.update_list_ui()
+        self.save_data()
+        self.refresh_list_ui()
+        self.list_ui.setCurrentRow(self.selected_index)
+        self.status.showMessage("Сохранено!", 3000)
 
-        self.list_widget.setCurrentRow(self.selected_index)
-        self.status_bar.showMessage("Событие успешно обновлено!", 3000)
 
-    def save_events_to_file(self):
-        filename = "events_data.txt"
+    def save_data(self):
         try:
-            with open(filename, "w", encoding="utf-8") as f:
-                for event in self.events:
-                    f.write(f"{event.event_id}|||{event.title}|||{event.date}|||{event.description}\n")
+            f = open("events_data.txt", "w", encoding="utf-8")
+            for ev in self.events:
+
+                f.write(f"{ev.event_id}|||{ev.title}|||{ev.date}|||{ev.description}\n")
+            f.close()
         except Exception as e:
-            print(f"Ошибка сохранения: {e}")
+            print("Не удалось сохранить:", e)
 
-    def load_events(self):
-        filename = "events_data.txt"
-        if not os.path.exists(filename):
-            return [
-                CalendarEvent(1, "Анапа", "29.10.2026", "поехать в анапу за справкой для суда"),
-                CalendarEvent(2, "Зачет", "19.10.2026", "ООП"),
-                CalendarEvent(3, "Барбер", "20.10.2026", "15:40"),
-                CalendarEvent(4, "Тренировка", "21.10.2026", "Спортзал"),
-                CalendarEvent(5, "День рождения", "05.02.2027", "Купить торт"),
-                CalendarEvent(6, "Машина", "20.11.2026", "забрать машину с сто"),
-                CalendarEvent(7, "Оплата связи", "09.11.2026", "МТС"),
-                CalendarEvent(8, "Павел", "25.11.2026", "туса в Новоросе"),
-                CalendarEvent(9, "День рождения", "05.12.2026", "папа"),
-                CalendarEvent(10, "Новый год", "31.12.2026", "Подготовка")
-            ]
+    def load_data(self):
+        if not os.path.exists("events_data.txt"):
+            self.events.append(CalendarEvent(1, "Анапа", "29.10.2026", "поехать в анапу за справкой"))
+            self.events.append(CalendarEvent(2, "Зачет", "19.10.2026", "ООП"))
+            self.events.append(CalendarEvent(3, "Барбер", "20.10.2026", "15:40"))
+            self.events.append(CalendarEvent(4, "Тренировка", "21.10.2026", "Спортзал"))
+            self.events.append(CalendarEvent(5, "День рождения", "05.02.2027", "Купить торт"))
+            self.events.append(CalendarEvent(6, "Машина", "20.11.2026", "забрать машину с сто"))
+            self.events.append(CalendarEvent(7, "Оплата связи", "09.11.2026", "МТС"))
+            self.events.append(CalendarEvent(8, "Павел", "25.11.2026", "туса в Новоросе"))
+            self.events.append(CalendarEvent(9, "День рождения", "05.12.2026", "папа"))
+            self.events.append(CalendarEvent(10, "Новый год", "31.12.2026", "Подготовка"))
+            return
 
-        evs = []
         try:
-            with open(filename, "r", encoding="utf-8") as f:
-                for line in f:
-                    p = line.strip().split("|||")
-                    if len(p) == 4:
-                        evs.append(CalendarEvent(int(p[0]), p[1], p[2], p[3]))
+            f = open("events_data.txt", "r", encoding="utf-8")
+            for line in f:
+                parts = line.strip().split("|||")
+                if len(parts) == 4:
+                    ev = CalendarEvent(int(parts[0]), parts[1], parts[2], parts[3])
+                    self.events.append(ev)
+            f.close()
         except Exception:
             pass
-        return evs if evs else [CalendarEvent(1, "Ошибка загрузки", "01.01.2026", "")]
 
     @staticmethod
-    def generate_report(login, time_in, time_out):
-        filename = "report.txt"
+    def make_report(login, t_in, t_out):
         fmt = "%d.%m.%Y %H:%M:%S"
-        with open(filename, "w", encoding="utf-8") as f:
+        try:
+            f = open("report.txt", "w", encoding="utf-8")
             f.write("| login | time_in | time_out |\n")
             f.write("|---|---|---|\n")
-            f.write(f"| {login} | {time_in.strftime(fmt)} | {time_out.strftime(fmt)} |\n")
-        print(f"Отчет сохранен в {filename}")
+            f.write(f"| {login} | {t_in.strftime(fmt)} | {t_out.strftime(fmt)} |\n")
+            f.close()
+            print("Отчет сохранен")
+        except Exception as e:
+            print("Ошибка отчета:", e)
 
     def closeEvent(self, event):
-        self.save_events_to_file()
-        time_out = datetime.now()
-        CalendarApp.generate_report(self.login, self.time_in, time_out)
+        self.save_data()
+        now_time = datetime.now()
+        CalendarApp.make_report(self.login, self.time_in, now_time)
         super().closeEvent(event)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
